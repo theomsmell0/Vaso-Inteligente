@@ -1,4 +1,4 @@
-Welcome! We and my team come through this file to tell you guys how we managed to do this vase with IoT technology!
+Welcome! Me and my team come through this file to tell you guys how we managed to do this vase with IoT technology!
 
 To do this, we used an ESP32 as our microcontroller, a protoboard, some jumper wires, a soil humidity sensor, a photoresistor, a small LED light, a LCD display and battery of our choice.
 As software, we used VSCode as our code editor, C++ as our main programming language for the ESP32, Flask as the the main language for the server and python for the telegram bot. Also, you need the PlatformIO in VSCode to make the ESP32 project.
