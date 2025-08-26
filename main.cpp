@@ -1,5 +1,4 @@
-// main.ino - Código C++ para o ESP32 do Vaso Inteligente
-
+#include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h> // Necessário para manipular JSON
@@ -7,36 +6,34 @@
 #include <LiquidCrystal_I2C.h>
 
 // --- CONFIGURAÇÕES DE WI-FI E SERVIDOR ---
-const char* ssid = "ESTUFA 5G";
-const char* password = "REDEALUNOS";
-// IMPORTANTE: Substitua pelo IP do computador onde o servidor Flask está rodando!
-const char* serverUrl = "http://192.168.0.24:5000/update_sensor_data";
+const char* ssid = "NOME DA REDE";
+const char* password = "SENHA DA REDE";
+const char* serverUrl = "ESCREVA O SERVIDOR AQUI";
 
 // --- CONFIGURAÇÕES DOS PINOS ---
 const int umidadePin = 34;
-const int luzPin = 35;
+const int led = 23;
+const int luzPins[] = {35, 32, 33, 25}; 
+const int numLuzSensors = 4; 
 
-// --- CALIBRAÇÃO DOS SENSORES (AJUSTE CONFORME SEU SENSOR) ---
-// Mapeamento do ADC (0-4095) para porcentagem (0-100%)
-const int UMIDADE_MAX_ADC = 4095; // Valor do ADC quando o sensor está totalmente seco
-const int UMIDADE_MIN_ADC = 1800; // Valor do ADC quando o sensor está totalmente molhado
-
-const int LUZ_MAX_ADC = 4095; // Escuro total
-const int LUZ_MIN_ADC = 0;    // Luz máxima
+// --- CALIBRAÇÃO DOS SENSORES ---
+const int UMIDADE_MAX_ADC = 4095;
+const int UMIDADE_MIN_ADC = 1800;
+const int LUZ_MAX_ADC = 4095;
+const int LUZ_MIN_ADC = 0;
 
 // --- INICIALIZAÇÃO DOS COMPONENTES ---
-LiquidCrystal_I2C lcd(0x27); // Endereço I2C, 16 colunas, 2 linhas
+LiquidCrystal_I2C lcd(0x27);
 HTTPClient http;
 
 // --- FUNÇÕES AUXILIARES ---
-
 void conectaWifi() {
   WiFi.begin(ssid, password);
   lcd.clear();
   lcd.print("Conectando WiFi");
   Serial.print("Conectando ao WiFi...");
 
-  int timeout = 20; // Timeout de 10 segundos (20 * 500ms)
+  int timeout = 20;
   while (WiFi.status() != WL_CONNECTED && timeout > 0) {
     delay(500);
     Serial.print(".");
@@ -46,6 +43,7 @@ void conectaWifi() {
 
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("\nWiFi conectado!");
+    digitalWrite(led,HIGH);
     Serial.print("Endereço IP: ");
     Serial.println(WiFi.localIP());
     lcd.clear();
@@ -58,40 +56,34 @@ void conectaWifi() {
   }
 }
 
-// Função para converter um valor de uma escala para outra
 long mapear(long valor, long de_min, long de_max, long para_min, long para_max) {
   if (de_max - de_min == 0) return para_min;
   long valor_mapeado = (valor - de_min) * (para_max - para_min) / (de_max - de_min) + para_min;
   return max(para_min, min(para_max, valor_mapeado));
 }
 
-
 void setup() {
   Serial.begin(115200);
-  
-  // Inicia o barramento I2C para a comunicação com o LCD
   Wire.begin(); 
   
-  // Configura os pinos dos sensores como entrada
   pinMode(umidadePin, INPUT);
-  pinMode(luzPin, INPUT);
+  
+  for (int i = 0; i < numLuzSensors; i++) { 
+    pinMode(luzPins[i], INPUT);
+  }
 
-  // Inicia e liga o backlight do LCD
- lcd.begin(16, 2); // Inicializa com 16 colunas e 2 linhas
- lcd.backlight();
- lcd.print("Iniciando...");
+  lcd.begin(16, 2);
+  lcd.backlight();
+  lcd.print("Iniciando...");
   delay(1000);
-
-  // Conecta ao Wi-Fi
+  pinMode(led,OUTPUT);
   conectaWifi();
 }
 
 void loop() {
-  // Verifica se o WiFi ainda está conectado
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("Conexão WiFi perdida. Tentando reconectar...");
     conectaWifi();
-    // Se não conseguir reconectar, espera um pouco e tenta de novo
     if (WiFi.status() != WL_CONNECTED) {
       delay(5000);
       return;
@@ -100,18 +92,24 @@ void loop() {
 
   // 1. Ler os valores brutos dos sensores
   int valorUmidadeRaw = analogRead(umidadePin);
-  int valorLuzRaw = analogRead(luzPin);
+
+  long totalLuzRaw = 0; 
+  for (int i = 0; i < numLuzSensors; i++) { 
+    totalLuzRaw += analogRead(luzPins[i]);   
+  } // <--- CHAVE FECHADA AQUI
+
+  int valorLuzRaw = totalLuzRaw / numLuzSensors; 
 
   // 2. Converter os valores para porcentagem
   long umidadePercent = mapear(valorUmidadeRaw, UMIDADE_MAX_ADC, UMIDADE_MIN_ADC, 0, 100);
   long luzPercent = mapear(valorLuzRaw, LUZ_MAX_ADC, LUZ_MIN_ADC, 0, 100);
 
-  Serial.printf("Leitura: Umidade RAW=%d -> %ld%% | Luz RAW=%d -> %ld%%\n", valorUmidadeRaw, umidadePercent, valorLuzRaw, luzPercent);
+  Serial.printf("Leitura: Umidade RAW=%d -> %ld%% | Média Luz RAW=%d -> %ld%%\n", valorUmidadeRaw, umidadePercent, valorLuzRaw, luzPercent);
 
   // 3. Criar o corpo da requisição JSON
   StaticJsonDocument<200> doc;
   doc["umidade"] = umidadePercent;
-  doc["luminosidade"] = luzPercent;
+  doc["luminosidade"] = luzPercent; 
 
   String requestBody;
   serializeJson(doc, requestBody);
@@ -122,7 +120,7 @@ void loop() {
 
   Serial.println("Enviando dados para o servidor...");
   int httpResponseCode = http.POST(requestBody);
-
+  
   // 5. Processar a resposta do servidor
   if (httpResponseCode > 0) {
     String payload = http.getString();
@@ -131,11 +129,9 @@ void loop() {
     Serial.print("Resposta do servidor: ");
     Serial.println(payload);
 
-    // Desserializa a resposta JSON
     StaticJsonDocument<200> responseDoc;
     deserializeJson(responseDoc, payload);
-    
-    const char* instrucao = responseDoc["instrucao"]; // Extrai a instrução
+    const char* instrucao = responseDoc["instrucao"];
 
     // 6. Exibir no LCD
     lcd.clear();
@@ -153,9 +149,8 @@ void loop() {
     lcd.printf("Cod: %d", httpResponseCode);
   }
 
-  http.end(); // Libera os recursos
+  http.end();
 
-  // Espera antes da próxima leitura
   Serial.println("Aguardando 30 segundos...");
   delay(30000);
-} 
+}
