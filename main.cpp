@@ -12,7 +12,7 @@ const char* serverUrl = "ESCREVA O SERVIDOR AQUI";
 
 // --- CONFIGURAÇÕES DOS PINOS ---
 const int umidadePin = 34;
-const int led = 23;
+const int led = 2;
 const int luzPins[] = {35, 32, 33, 25}; 
 const int numLuzSensors = 4; 
 
