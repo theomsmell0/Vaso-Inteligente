@@ -5,6 +5,11 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
+// --- CONFIGURAÇÕES DE WI-FI E SERVIDOR ---
+const char* ssid = "NOME DO WIFI";
+const char* password = "SENHA DO WIFI";
+const char* serverUrl = "ENDEREÇO DO SERVIDOR";
+
 // --- CONFIGURAÇÕES DOS PINOS ---
 const int umidadePin = 34;
 const int led = 2;
