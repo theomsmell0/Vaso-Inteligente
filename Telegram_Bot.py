@@ -12,7 +12,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- TOKEN DO SEU BOT DO TELEGRAM ---
-TELEGRAM_BOT_TOKEN = "7967447224:AAFHL3_vt3f0uxvD2K4h8Swd3daAAy-9VKs" 
+TELEGRAM_BOT_TOKEN = "TELEGRAM BOT" 
 
 # --- ENDEREÇO DO SEU SERVIDOR FLASK ---
 FLASK_SERVER_URL = "http://127.0.0.1:5000" 
