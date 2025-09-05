@@ -3,7 +3,7 @@ from telegram import Bot
 import asyncio
 import threading
 import logging
-import queue
+import queue 
 
 # --- Configurações Iniciais do Flask e Logging ---
 app = Flask(__name__)
@@ -11,52 +11,60 @@ app = Flask(__name__)
 # Configura o sistema de log para ver as mensagens do servidor
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    level=logging.INFO 
 )
 logger = logging.getLogger(__name__)
 
 # --- CONFIGURAÇÕES DO TELEGRAM ---
-TELEGRAM_BOT_TOKEN = '7967447224:AAFHL3_vt3f0uxvD2K4h8Swd3daAAy-9VKs'
-bot = Bot(token=TELEGRAM_BOT_TOKEN)
+TELEGRAM_BOT_TOKEN = 'YOUR TELEGRAM TOKEN' 
+bot = Bot(token=TELEGRAM_BOT_TOKEN) 
 
-TELEGRAM_CHAT_ID = '5971695702'
+TELEGRAM_CHAT_ID = 'CHAT ID' 
 
 # --- VARIÁVEIS DE ESTADO DO VASO ---
 estado_vaso = {
-    "planta_selecionada": "Nenhuma",
+    "planta_selecionada": "Nenhuma", 
     "umidade_atual": 0,
     "luminosidade_atual": 0,
-    "instrucao_para_lcd": "Aguardando dados...",
+    "instrucao_para_lcd": "Aguardando dados...", 
     "ultima_notificacao_telegram": "",
-    "chat_id_notificacao": None
+    "chat_id_notificacao": None 
 }
 
 # --- PARÂMETROS DAS PLANTAS ---
 parametros_plantas = {
     "Cacto": {
-        "umidade_min": 10, "umidade_max": 25,
-        "luminosidade_min": 700, "luminosidade_max": 1000
+        "umidade_min": 10,  
+        "umidade_max": 25,  
+        "luminosidade_min": 700, 
+        "luminosidade_max": 1000
     },
     "Samambaia": {
-        "umidade_min": 70, "umidade_max": 85,
-        "luminosidade_min": 150, "luminosidade_max": 400
+        "umidade_min": 70,  
+        "umidade_max": 85,
+        "luminosidade_min": 150, 
+        "luminosidade_max": 400
     },
     "Hortelã": {
-        "umidade_min": 55, "umidade_max": 75,
-        "luminosidade_min": 350, "luminosidade_max": 650
+        "umidade_min": 55,  
+        "umidade_max": 75,
+        "luminosidade_min": 350, 
+        "luminosidade_max": 650
     },
-    "Orquídea": {
-        "umidade_min": 40, "umidade_max": 60,
-        "luminosidade_min": 450, "luminosidade_max": 750
+    "Orquídea": { 
+        "umidade_min": 40,  
+        "umidade_max": 60,  
+        "luminosidade_min": 450, 
+        "luminosidade_max": 750
     },
-    "Nenhuma": {
+    "Nenhuma": { 
         "umidade_min": 0, "umidade_max": 100,
         "luminosidade_min": 0, "luminosidade_max": 1000
     }
 }
 
 # --- FILA DE MENSAGENS PARA O TELEGRAM E WORKER DEDICADO ---
-telegram_message_queue = queue.Queue()
+telegram_message_queue = queue.Queue() 
 
 async def enviar_mensagem_telegram(chat_id, mensagem):
     try:
@@ -70,11 +78,11 @@ async def telegram_worker():
     while True:
         try:
             chat_id, message = await asyncio.to_thread(telegram_message_queue.get)
-            if chat_id is None:
+            if chat_id is None: 
                 logger.info("Sinal de parada recebido para o worker do Telegram.")
                 break
             await enviar_mensagem_telegram(chat_id, message)
-            telegram_message_queue.task_done()
+            telegram_message_queue.task_done() 
         except Exception as e:
             logger.error(f"Erro no worker do Telegram: {e}")
 
@@ -82,14 +90,14 @@ def start_telegram_worker():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(telegram_worker())
-    loop.close()
+    loop.close() 
 
 # --- LÓGICA DE DECISÃO DA PLANTA ---
 def tomar_decisao_planta():
     planta = estado_vaso["planta_selecionada"]
     umidade = estado_vaso["umidade_atual"]
     luminosidade = estado_vaso["luminosidade_atual"]
-    chat_id_para_notificar = estado_vaso["chat_id_notificacao"]
+    chat_id_para_notificar = estado_vaso["chat_id_notificacao"] 
 
     if chat_id_para_notificar is None:
         logger.warning("Nenhum chat ID configurado para notificações. Mensagem não será enviada para o Telegram.")
@@ -97,29 +105,34 @@ def tomar_decisao_planta():
 
     params = parametros_plantas.get(planta, parametros_plantas["Nenhuma"])
 
-    instrucoes_lcd = []
-    notificacoes_telegram = []
+    instrucoes_lcd = [] 
+    notificacoes_telegram = [] 
 
+    # Lógica de Umidade
     if umidade < params["umidade_min"]:
-        instrucoes_lcd.append("Regar!")
+        instrucoes_lcd.append("mais agua")
         notificacoes_telegram.append(f"🚨 Atenção! Sua {planta} precisa ser regada. Umidade atual: {umidade}%.")
     elif umidade > params["umidade_max"]:
-        instrucoes_lcd.append("Parar de regar!")
+        instrucoes_lcd.append("menos agua")
         notificacoes_telegram.append(f"💧 Excesso de água! Sua {planta} está com umidade muito alta: {umidade}%.")
+    else:
+        instrucoes_lcd.append("umidade ideal")
 
+    # Lógica de Luminosidade
     if luminosidade < params["luminosidade_min"]:
-        instrucoes_lcd.append("Colocar no sol!")
+        instrucoes_lcd.append("mais sol")
         notificacoes_telegram.append(f"☀️ Sua {planta} precisa de mais luz. Luminosidade atual: {luminosidade}.")
     elif luminosidade > params["luminosidade_max"]:
-        instrucoes_lcd.append("Tirar do sol!")
+        instrucoes_lcd.append("menos sol")
         notificacoes_telegram.append(f"🔥 Sua {planta} está pegando muito sol. Luminosidade atual: {luminosidade}.")
-
-    if not instrucoes_lcd:
-        instrucao_final_lcd = "Tudo certo! :)"
     else:
-        instrucao_final_lcd = ", ".join(instrucoes_lcd)
+        instrucoes_lcd.append("luz ideal") # ALTERADO AQUI!
+
+    # Define a instrução final para o LCD
+    instrucao_final_lcd = ", ".join(instrucoes_lcd) 
     estado_vaso["instrucao_para_lcd"] = instrucao_final_lcd
 
+    # Lógica para as notificações do Telegram
     if not notificacoes_telegram:
         if estado_vaso["ultima_notificacao_telegram"] != "✅ Tudo certo!":
             notificacao_telegram_final = f"✅ Sua {planta} está com condições perfeitas agora!"
@@ -127,11 +140,12 @@ def tomar_decisao_planta():
             telegram_message_queue.put((chat_id_para_notificar, notificacao_telegram_final))
             logger.info(f"Mensagem de 'tudo certo' enfileirada para Telegram (Chat ID: {chat_id_para_notificar}).")
     else:
-        notificacao_telegram_final = "\n".join(notificacoes_telegram)
+        notificacao_telegram_final = "\n".join(notificacoes_telegram) 
         if notificacao_telegram_final != estado_vaso["ultima_notificacao_telegram"]:
             telegram_message_queue.put((chat_id_para_notificar, notificacao_telegram_final))
             estado_vaso["ultima_notificacao_telegram"] = notificacao_telegram_final
             logger.info(f"Mensagem enfileirada para Telegram (Chat ID: {chat_id_para_notificar}): '{notificacao_telegram_final}'")
+
 
     logger.info(f"Decisão para {planta}: {instrucao_final_lcd}.")
     return instrucao_final_lcd
@@ -140,8 +154,6 @@ def tomar_decisao_planta():
 
 @app.route('/update_sensor_data', methods=['POST'])
 def update_sensor_data():
-    # --- LINHA DE LOG ADICIONADA ---
-    # Esta linha será impressa toda vez que o ESP32 enviar dados.
     logger.info(f"CONFIRMAÇÃO: Conexão recebida do ESP32 no IP {request.remote_addr}")
 
     data = request.json
@@ -159,7 +171,6 @@ def update_sensor_data():
     try:
         estado_vaso["umidade_atual"] = float(umidade)
         estado_vaso["luminosidade_atual"] = float(luminosidade)
-        # Linha de log original, agora mais focada nos dados
         logger.info(f"--> Dados recebidos: Umidade={umidade}%, Luminosidade={luminosidade}")
 
         instrucao = tomar_decisao_planta()
@@ -179,7 +190,7 @@ def get_instruction():
 @app.route('/get_full_status', methods=['GET'])
 def get_full_status():
     planta_selecionada = estado_vaso["planta_selecionada"]
-
+    
     current_status = {
         "planta_selecionada": planta_selecionada,
         "umidade_atual": estado_vaso["umidade_atual"],
@@ -226,4 +237,3 @@ if __name__ == '__main__':
     logger.info("Thread do worker do Telegram iniciada.")
 
     app.run(host='0.0.0.0', port=5000, debug=False)
-    
