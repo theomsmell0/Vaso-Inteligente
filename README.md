@@ -1,13 +1,55 @@
-Welcome! Me and my team come through this file to tell you guys how we managed to do this vase with IoT technology!
+IoT Smart Vase Project
+Welcome to the repository for our IoT-enabled smart vase. This document outlines how our team developed a system to monitor plant health using common electronics and web technologies.
 
-To do this, we used an ESP32 as our microcontroller, a protoboard, some jumper wires, a soil humidity sensor, a photoresistor, a small LED light, a LCD display and battery of our choice.
-If you have more equipment, you can also do with a PCB (Printed Circuit Board). The circuit will have less noise on the jumper wires, leading to better performance and a better design.
-As software, we used VSCode as our code editor, C++ as our main programming language for the ESP32, Flask as the the main language for the server and python for the telegram bot. Also, you need the PlatformIO in VSCode to make the ESP32 project.
-The project functions when the ESP32 collects the informations from the sensor placed on the vase and transmits the information to the online server that you have to put online to put all the wanted information to the 
-user through Telegram. Also, if you don't have your phone on you, the display will show the user if they need to water the plant or not and if they need to put them out on the sun or not (on the Telegram chat will show
-the same information, aswell as some information about the plant you set up).
-The project is made interelly in portuguese but you can switch to your own languague if you want, just look for the texts that were written throughout the code. 
+The core of the project is an ESP32 microcontroller that gathers data from sensors placed in the vase. This information is then transmitted to a custom online server, which processes the data and relays important updates to the user through a Telegram bot.
 
-Good luck and make sure to show us your own project!
+For local feedback, an LCD screen is attached to the vase, providing immediate status updates on whether the plant needs water or sunlight. The Telegram chat provides the same alerts, along with additional information about the specific plant you have set up.
 
-Contact: theo@mello.net.br
+Technology and Components
+Hardware
+  Microcontroller: ESP32
+
+  Prototyping: A protoboard and jumper wires were used for the initial build. For a more stable and professional result with less signal noise, we recommend transferring the circuit to a custom     PCB (Printed Circuit Board).
+
+  Sensors:
+
+    Soil Humidity Sensor
+
+    Photoresistor (LDR) for light detection
+
+  Outputs:
+
+    Small LED for visual status indication
+
+    16x2 I2C LCD Display
+
+  Power: A battery of your choice.
+
+Software
+  Editor: VSCode with the PlatformIO extension for ESP32 development.
+
+  ESP32 Firmware: The microcontroller code is written in C++.
+
+  Web Server: A backend server built with Flask, a Python web framework.
+
+  Telegram Bot: The notification bot is powered by a Python script.
+
+System Workflow
+The project operates in a clear, sequential manner:
+
+  1)Data Collection: The ESP32 continuously reads data from the soil humidity and light sensors.
+
+  2)Data Transmission: It then sends this information to the online Flask server.
+
+  3)Processing & Notification: The server analyzes the data to determine the plant's needs. If an action is required (e.g., watering), it triggers the Telegram bot to send a message to the user.
+
+  4)User Interface: The user is alerted via Telegram and can also check the plant's status directly on the attached LCD display.
+
+A Note on Language
+The project was originally developed entirely in Portuguese. If you wish to adapt it to another language, you can do so by searching for the user-facing strings throughout the C++ and Python code and translating them.
+
+Final Words
+We hope this project inspires you. Good luck with your build, and we would be delighted to see what you create!
+
+Contact:
+Theo Mello - theo@mello.net.br
